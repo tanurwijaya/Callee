@@ -139,8 +139,19 @@ const CallRoomScreen = () => {
               },
             }),
           );
+          startStream();
         });
       });
+    }
+  };
+
+  const startStream = async () => {
+    try {
+      const s = await mediaDevices.getUserMedia({video: true});
+      console.log({s});
+      setStream(s);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -156,7 +167,14 @@ const CallRoomScreen = () => {
 
   return (
     <SafeAreaView style={{flex: 1}}>
-      <View style={{backgroundColor: 'black', flex: 1}} />
+      {stream ? (
+        <RTCView
+          streamURL={stream.toURL()}
+          style={{backgroundColor: 'black', flex: 1}}
+        />
+      ) : (
+        <View style={{backgroundColor: 'black', flex: 1}} />
+      )}
       <View style={styles.previewWrapper}>
         <RNCamera
           ref={cameraRef}

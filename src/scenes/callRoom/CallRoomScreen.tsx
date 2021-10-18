@@ -88,7 +88,7 @@ const CallRoomScreen = () => {
       case 'videoOffer':
         const {from, sdp, to} = payload;
         if (to === MY_USER_ID) {
-          pc.createOffer().then(desc => {
+          pc.createAnswer().then(desc => {
             pc.setLocalDescription(desc).then(() => {
               console.log('try to send sdp');
               console.log({desc})

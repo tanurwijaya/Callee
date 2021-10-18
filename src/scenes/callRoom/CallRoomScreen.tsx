@@ -1,4 +1,4 @@
-import React, {createRef, useEffect, useRef, useState} from 'react';
+import React, {createRef, useState} from 'react';
 import {
   SafeAreaView,
   View,
@@ -7,16 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {RNCamera} from 'react-native-camera';
-import {
-  RTCPeerConnection,
-  RTCIceCandidate,
-  RTCSessionDescription,
-  RTCView,
-  MediaStream,
-  MediaStreamTrack,
-  mediaDevices,
-  registerGlobals,
-} from 'react-native-webrtc';
+import {RTCPeerConnection, RTCIceCandidate, RTCView} from 'react-native-webrtc';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -25,7 +16,9 @@ const MY_USER_ID = 'tanurwijaya';
 
 const CallRoomScreen = () => {
   const ws = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
+
   const cameraRef = createRef<RNCamera>();
+
   const [cameraFacing, setCameraFacing] = useState(
     RNCamera.Constants.Type.front,
   );
@@ -33,6 +26,7 @@ const CallRoomScreen = () => {
   const [stream, setStream] = useState(null);
 
   const configuration = {iceServers: [{url: 'stun:stun.stunprotocol.org'}]};
+
   const pc = new RTCPeerConnection(configuration);
 
   const toogleCameraFacing = () => {
@@ -104,8 +98,9 @@ const CallRoomScreen = () => {
         break;
       case 'newIceCandidate':
         handleReceiveIceCandidate(payload)
-          .then(() => {})
+          .then(() => console.log('handleReceiveIceCandidate'))
           .catch(e => console.log({e}));
+        break;
       default:
         break;
     }

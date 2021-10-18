@@ -14,9 +14,9 @@ const windowHeight = Dimensions.get('window').height;
 
 const MY_USER_ID = 'tanurwijaya';
 
-const CallRoomScreen = () => {
-  const ws = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
+const ws = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
 
+const CallRoomScreen = () => {
   const cameraRef = createRef<RNCamera>();
 
   const [cameraFacing, setCameraFacing] = useState(
@@ -127,7 +127,7 @@ const CallRoomScreen = () => {
   return (
     <SafeAreaView style={{flex: 1}}>
       {stream ? (
-        <RTCView streamURL={stream.toURL()} style={{flex: 1}} />
+        <RTCView streamURL={stream?.toURL()} style={{flex: 1}} />
       ) : (
         <View style={{backgroundColor: 'black', flex: 1}} />
       )}

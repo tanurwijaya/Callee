@@ -6,7 +6,15 @@ import {
   RTCPeerConnectionConfiguration,
   RTCSessionDescription,
   RTCSessionDescriptionType,
+  mediaDevices as mobileMediaDevices,
+  MediaStream,
 } from 'react-native-webrtc';
+
+type VideoOption = {
+  width: number;
+  height: number;
+  frameRate: number;
+};
 
 const userFactory = () => {
   let receiver: string | null = null;
@@ -34,6 +42,47 @@ export const sessionDescription = (info: RTCSessionDescription) => {
 
 export const iceCandidate = (iceCandidateType: RTCIceCandidateType) => {
   return new RTCIceCandidate(iceCandidateType);
+};
+
+export const mediaDevices = {
+  getUserMedia: async (
+    cameraFacing: boolean,
+    videoOption: VideoOption,
+  ): Promise<MediaStream | undefined> => {
+    const currentCameraFacing = cameraFacing ? 'user' : 'environment';
+    const sourceInfos = await mobileMediaDevices.enumerateDevices();
+    let videoSourceId;
+
+    for (let i = 0; i < sourceInfos.length; i++) {
+      const sourceInfo = sourceInfos[i];
+      if (
+        sourceInfo.kind === 'videoinput' &&
+        sourceInfo.facing === currentCameraFacing
+      ) {
+        videoSourceId = sourceInfo.deviceId;
+      }
+    }
+
+    try {
+      const currentStream = await mobileMediaDevices.getUserMedia({
+        audio: true,
+        video: {
+          ...videoOption,
+          facingMode: currentCameraFacing,
+          // @ts-ignore
+          deviceId: videoSourceId,
+        },
+      });
+
+      if (currentStream) {
+        return currentStream as MediaStream;
+      }
+
+      return undefined;
+    } catch (e) {
+      throw new Error(e);
+    }
+  },
 };
 
 export const peerConnection = (

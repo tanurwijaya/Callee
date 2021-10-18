@@ -44,7 +44,7 @@ const CallRoomScreen = () => {
       JSON.stringify({
         type: 'signIn',
         payload: {
-          username: 'tanurwijaya',
+          from: MY_USER_ID,
         },
       }),
     );
@@ -77,26 +77,31 @@ const CallRoomScreen = () => {
     const parsedData = JSON.parse(e.data);
     console.log({parsedData});
     const {payload, type} = parsedData;
+    console.log({type});
     switch (type) {
       case 'videoOffer':
         const {from, sdp, to} = payload;
         if (to === MY_USER_ID) {
-          pc.setLocalDescription().then((desc: any) => {
-            console.log('try to send sdp');
-            ws.send(
-              JSON.stringify({
-                type: 'videoAnswer',
-                payload: {
-                  from: MY_USER_ID,
-                  to: from,
-                  sdp: desc,
-                },
-              }),
-            );
+          pc.createOffer().then(desc => {
+            pc.setLocalDescription(desc).then(() => {
+              console.log('try to send sdp');
+              console.log({desc})
+              ws.send(
+                JSON.stringify({
+                  type: 'videoAnswer',
+                  payload: {
+                    from: MY_USER_ID,
+                    to: from,
+                    sdp: desc.sdp,
+                  },
+                }),
+              );
+            });
           });
         }
         break;
       case 'newIceCandidate':
+        console.log('newIceCandidate');
         handleReceiveIceCandidate(payload)
           .then(() => console.log('handleReceiveIceCandidate'))
           .catch(e => console.log({e}));

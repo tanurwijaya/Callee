@@ -24,42 +24,13 @@ const windowHeight = Dimensions.get('window').height;
 const MY_USER_ID = 'tanurwijaya';
 
 const CallRoomScreen = () => {
+  const ws = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
   const cameraRef = createRef<RNCamera>();
   const [cameraFacing, setCameraFacing] = useState(
     RNCamera.Constants.Type.front,
   );
-  const [stream, setStream] = useState(null);
 
-  // const ws = useRef(null);
-  //
-  // useEffect(() => {
-  //   ws.current = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
-  //   console.log('useeffect');
-  //   ws.current.onopen = () => {
-  //     console.log('onopen');
-  //     ws.current.send(
-  //       JSON.stringify({
-  //         type: 'signIn',
-  //         payload: {},
-  //       }),
-  //     );
-  //   };
-  //   ws.current.onclose = () => console.log('ws closed');
-  //
-  //   const wsCurrent = ws.current;
-  //
-  //   return () => {
-  //     wsCurrent.close();
-  //   };
-  // }, []);
-  //
-  // useEffect(() => {
-  //   if (!ws) return;
-  //   ws.current.onmessage = e => {
-  //     const message = JSON.parse(e.data);
-  //     console.log('e', message);
-  //   };
-  // }, [ws]);
+  const [stream, setStream] = useState(null);
 
   const configuration = {iceServers: [{url: 'stun:stun.stunprotocol.org'}]};
   const pc = new RTCPeerConnection(configuration);
@@ -71,8 +42,6 @@ const CallRoomScreen = () => {
       setCameraFacing(RNCamera.Constants.Type.front);
     }
   };
-
-  const ws = new WebSocket('wss://vdc-api.dewadg.pro/ws/signaling');
 
   ws.onopen = () => {
     // connection opened
@@ -87,7 +56,7 @@ const CallRoomScreen = () => {
     );
   };
 
-  pc.onicecandidate = async event => {
+  pc.onicecandidate = async (event: any) => {
     console.log({event});
     if (!event.candidate) {
       return;
@@ -105,8 +74,7 @@ const CallRoomScreen = () => {
     );
   };
 
-  const handleReceiveIceCandidate = async payload => {
-    console.log(payload.candidate.candidate);
+  const handleReceiveIceCandidate = async (payload: any) => {
     const candidate = new RTCIceCandidate(payload.candidate.candidate);
     await pc.addIceCandidate(candidate);
   };
@@ -115,47 +83,39 @@ const CallRoomScreen = () => {
     const parsedData = JSON.parse(e.data);
     console.log({parsedData});
     const {payload, type} = parsedData;
-    if (type === 'videoOffer') {
-      const {from, sdp, to} = payload;
-      if (to === MY_USER_ID) {
-        pc.setLocalDescription().then((desc: any) => {
-          console.log('try to send sdp');
-          ws.send(
-            JSON.stringify({
-              type: 'videoAnswer',
-              payload: {
-                from: MY_USER_ID,
-                to: from,
-                sdp: desc,
-              },
-            }),
-          );
-        });
-      }
-    } else if (type === 'newIceCandidate') {
-      handleReceiveIceCandidate(payload)
-        .then(() => {})
-        .catch(e => console.log({e}));
-    }
-  };
-
-  const startStream = async () => {
-    try {
-      const s = await mediaDevices.getUserMedia({video: true});
-      console.log({s});
-      setStream(s);
-    } catch (e) {
-      console.error(e);
+    switch (type) {
+      case 'videoOffer':
+        const {from, sdp, to} = payload;
+        if (to === MY_USER_ID) {
+          pc.setLocalDescription().then((desc: any) => {
+            console.log('try to send sdp');
+            ws.send(
+              JSON.stringify({
+                type: 'videoAnswer',
+                payload: {
+                  from: MY_USER_ID,
+                  to: from,
+                  sdp: desc,
+                },
+              }),
+            );
+          });
+        }
+        break;
+      case 'newIceCandidate':
+        handleReceiveIceCandidate(payload)
+          .then(() => {})
+          .catch(e => console.log({e}));
+      default:
+        break;
     }
   };
 
   ws.onerror = e => {
-    // an error occurred
     console.log('error', e.message);
   };
 
   ws.onclose = e => {
-    // connection closed
     console.log(e.code, e.reason);
   };
 

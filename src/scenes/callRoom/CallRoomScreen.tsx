@@ -64,38 +64,6 @@ const CallRoomScreen = () => {
   const configuration = {iceServers: [{url: 'stun:stun.stunprotocol.org'}]};
   const pc = new RTCPeerConnection(configuration);
 
-  // mediaDevices.enumerateDevices().then(sourceInfos => {
-  //   console.log(sourceInfos);
-  //   let videoSourceId;
-  //   for (let i = 0; i < sourceInfos.length; i++) {
-  //     const sourceInfo = sourceInfos[i];
-  //     if (
-  //       sourceInfo.kind == 'videoinput' &&
-  //       sourceInfo.facing == (RNCamera.Constants.Type.front ? 'front' : 'back')
-  //     ) {
-  //       videoSourceId = sourceInfo.deviceId;
-  //     }
-  //   }
-  //   mediaDevices
-  //     .getUserMedia({
-  //       audio: true,
-  //       video: {
-  //         width: 640,
-  //         height: 480,
-  //         frameRate: 30,
-  //         facingMode:
-  //           cameraFacing === RNCamera.Constants.Type.front ? 'front' : 'back',
-  //         deviceId: videoSourceId,
-  //       },
-  //     })
-  //     .then(stream => {
-  //       // Got stream!
-  //     })
-  //     .catch(error => {
-  //       // Log error
-  //     });
-  // });
-
   const toogleCameraFacing = () => {
     if (cameraFacing === RNCamera.Constants.Type.front) {
       setCameraFacing(RNCamera.Constants.Type.back);
@@ -119,15 +87,38 @@ const CallRoomScreen = () => {
     );
   };
 
+  pc.onicecandidate = async event => {
+    console.log({event});
+    if (!event.candidate) {
+      return;
+    }
+
+    await ws.send(
+      JSON.stringify({
+        type: 'newIceCandidate',
+        payload: {
+          from: MY_USER_ID,
+          to: 'dewadg',
+          candidate: event.candidate,
+        },
+      }),
+    );
+  };
+
+  const handleReceiveIceCandidate = async payload => {
+    console.log(payload.candidate.candidate);
+    const candidate = new RTCIceCandidate(payload.candidate.candidate);
+    await pc.addIceCandidate(candidate);
+  };
+
   ws.onmessage = e => {
-    // a message was received
-    console.log(e.data);
     const parsedData = JSON.parse(e.data);
-    const {payload} = parsedData;
-    const {from, sdp, to} = payload;
-    if (to === MY_USER_ID) {
-      pc.createOffer().then(desc => {
-        pc.setLocalDescription(desc).then(() => {
+    console.log({parsedData});
+    const {payload, type} = parsedData;
+    if (type === 'videoOffer') {
+      const {from, sdp, to} = payload;
+      if (to === MY_USER_ID) {
+        pc.setLocalDescription().then((desc: any) => {
           console.log('try to send sdp');
           ws.send(
             JSON.stringify({
@@ -139,9 +130,12 @@ const CallRoomScreen = () => {
               },
             }),
           );
-          startStream();
         });
-      });
+      }
+    } else if (type === 'newIceCandidate') {
+      handleReceiveIceCandidate(payload)
+        .then(() => {})
+        .catch(e => console.log({e}));
     }
   };
 
@@ -165,13 +159,15 @@ const CallRoomScreen = () => {
     console.log(e.code, e.reason);
   };
 
+  pc.ontrack = event => {
+    console.log({ontrackevent: event});
+    // this.remoteVideoStream = event.streams[0]
+  };
+
   return (
     <SafeAreaView style={{flex: 1}}>
       {stream ? (
-        <RTCView
-          streamURL={stream.toURL()}
-          style={{backgroundColor: 'black', flex: 1}}
-        />
+        <RTCView streamURL={stream.toURL()} style={{flex: 1}} />
       ) : (
         <View style={{backgroundColor: 'black', flex: 1}} />
       )}

@@ -40,7 +40,6 @@ export const peerConnection = (
   configuration: RTCPeerConnectionConfiguration,
 ) => {
   const instance = new RTCPeerConnection(configuration);
-  const user = userFactory();
 
   return {
     getInstance: () => {
@@ -49,15 +48,15 @@ export const peerConnection = (
     setRemoteDescription: async (description: RTCSessionDescription) => {
       await instance.setRemoteDescription(description);
     },
-    onIceCandidate: (ws: WebSocket) => {
+    onIceCandidate: (senderID: string, receiverID: string, ws: WebSocket) => {
       instance.onicecandidate = event => {
         if (event.candidate) {
           ws.send(
             JSON.stringify({
               type: 'newIceCandidate',
               payload: {
-                from: user.getSender(),
-                to: user.getReceiver(),
+                from: senderID,
+                to: receiverID,
                 candidate: event.candidate,
               },
             }),
